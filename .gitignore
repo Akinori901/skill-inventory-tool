@@ -1,0 +1,24 @@
+# === 実データ（顧客名・実案件を含む）は絶対に公開しない ===
+# 台帳の実体。projects.example.yaml をコピーして作る。追跡しない。
+/ledger/projects.yaml
+
+# NDA/契約書の原本。一次情報。載せない。
+/nda/**
+!/nda/.gitkeep
+!/nda/README.md
+
+# スキャン結果（実案件の言語比率・remote URL・顧客名を含む）。載せない。
+/output/reports/**
+!/output/reports/.gitkeep
+
+# 掲載用に生成した実コード。人間が確認したものだけ各自 -f で追加。
+/output/publishable/**
+!/output/publishable/.gitkeep
+
+# 一般
+.DS_Store
+*.tmp
+node_modules/
+__pycache__/
+.env
+.env.local

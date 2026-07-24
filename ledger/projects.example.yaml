@@ -1,0 +1,65 @@
+# =====================================================================
+# 案件台帳（サンプル）— これをコピーして projects.yaml を作る。
+#   cp ledger/projects.example.yaml ledger/projects.yaml
+# projects.yaml は .gitignore 済み（実案件・顧客名を含むため公開しない）。
+#
+# decision（コードをどう載せるか）:
+#   metadata_only  技術メタデータのみ。コードは一切載せない（顧客帰属のデフォルト）
+#   anonymize      匿名化・秘匿除去した公開用コードを生成して載せる
+#   as_is          自社帰属。コードごと載せてよい
+#   pending        未判定。scan はメタデータJSONを出すだけでコードには触れない（fail-safe）
+#
+# nda_reviewed:   NDA/契約を読んで判定したか
+# approved_by:    人間の最終承認者。空なら未承認 = コード生成はしない
+#
+# ヒント: remote の org が顧客組織なら顧客帰属が濃厚。自分なら自社帰属が濃厚。
+#         ただし最終判断は必ず NDA/契約に基づくこと（org はあくまで補助シグナル）。
+# =====================================================================
+
+defaults:
+  decision: pending
+  nda_reviewed: false
+  approved_by: ""
+
+projects:
+  # --- 自社プロダクトの例（コードごと公開可）---
+  - key: my_saas
+    display_name: 自社SaaS（例）
+    client: self
+    repos:
+      - /path/to/your/self-owned-repo
+    remote_org_hint: your-github-account
+    nda_path: ""
+    nda_reviewed: true
+    decision: as_is
+    approved_by: "you"
+    notes: "自社プロダクト。コードごと個人GitHubに載せてよい。"
+
+  # --- 受託案件の例（成果物著作権が顧客へ移転 → メタデータのみ）---
+  - key: client_a
+    display_name: 受託案件A（例）
+    client: 顧客A株式会社
+    repos:
+      - /path/to/client-a-repo
+    remote_org_hint: client-a-org
+    nda_path: nda/client_a          # NDA原本を置く場所（gitignore済）
+    nda_reviewed: true
+    decision: metadata_only
+    approved_by: "you"
+    notes: >
+      契約○条: 成果物著作権は納入時に顧客へ移転。→ メタデータのみ。
+      ただし契約前保有 or 汎用的に利用可能な著作物は自分に留保される場合あり
+      （その部品だけ切り出せば anonymize で流用/公開の余地）。
+
+  # --- まだ契約を読んでいない案件（安全側に pending）---
+  - key: client_b
+    display_name: 受託案件B（例・未読解）
+    client: "（要確認）"
+    repos:
+      - /path/to/client-b-repo
+    remote_org_hint: ""
+    nda_path: nda/client_b
+    nda_reviewed: false
+    decision: pending
+    approved_by: ""
+    notes: "NDA未読解。読むまで pending（コードには触れない）。"
