@@ -50,13 +50,34 @@ description: 過去に関わった案件を安全に棚卸しするスキル。N
 > 自分の個人アカウントなら自社帰属を疑う。だが確定は必ず契約の記述で行う。
 
 ### Step 2. 技術メタデータを集計（いつでも安全）
+
+**A. ローカル走査**（手元に clone 済みのリポを台帳ベースで集計）
 ```
 export SKILL_INV_AUTHOR="<自分のcommit author名 or email>"   # 関与コミット数を出す場合
-bash "$INV/scanner/run-all.sh"          # 全案件
+bash "$INV/scanner/run-all.sh"          # 台帳の全案件
 # または単体: bash "$INV/scanner/scan.sh" <repo_path> --author "<who>"
 ```
-結果は `output/reports/<key>.json`（言語比率・manifest・framework・git集計・規模）。
-**この JSON はコード実体を含まない**ので、どの decision でも生成してよい。スキル集計システムにはこれを供給する。
+結果は `output/reports/<key>.json`。
+
+**B. GitHub API 走査**（手元に無いリポ・Private 含む全リポを API 経由で集計。要 `gh` CLI）
+```
+# アカウントの全リポ（fork 除外）を一括で棚卸し
+bash "$INV/scanner/run-all-github.sh" <your-gh-login> --token-user <gh-account> --author <your-gh-login>
+# または単体: bash "$INV/scanner/scan-github.sh" <owner/repo> --token-user <gh> --author <who>
+```
+結果は `output/reports/github/<owner>__<repo>.json` と一覧 `github/_index.json`。
+言語比率は GitHub Linguist のバイト数ベース。`--author` はログイン名で名寄せするのが正確。
+
+**C. 案件サマリに集約**（下流アプリ供給用。ローカル/GitHub のハイブリッド集約）
+```
+bash "$INV/scanner/export-summary.sh" --owner <your-gh-login>
+```
+→ `output/career-feed.json`（案件単位に言語比率・FW・期間・規模・関与コミットを集約）。
+
+いずれも出力はメタデータのみで、**コード実体を含まない**（L1）。どの decision でも生成してよい。
+
+> ⚠️ GitHub 走査は網羅的だが顧客帰属リポも混じりうる。メタデータのみなので集計は安全だが、
+> **この結果を根拠にコード公開を判断しない**こと。コード掲載可否は必ず台帳 decision + NDA 読解で決める。
 
 ### Step 3. 掲載用コードを生成（anonymize / as_is のみ）
 台帳の `decision` を確認し、分岐する：

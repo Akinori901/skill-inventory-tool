@@ -60,11 +60,26 @@ ln -s "$PWD/skill" ~/.claude/skills/skill-inventory     # Claude Code スキル�
 ## 使い方
 
 ### 技術メタデータを集計（いつでも安全・コードを出さない）
+
+**ローカル走査**（手元に clone 済みのリポ）
 ```bash
 export SKILL_INV_AUTHOR="<自分の git author 名 or email>"   # 関与コミット数を出す場合
 make scan                              # 台帳の全案件をスキャン → output/reports/*.json
 make scan-one REPO=/path/to/repo       # 単一リポのメタデータを表示
 ```
+
+**GitHub API 走査**（手元に無いリポ・Private 含む全リポ。要 [`gh` CLI](https://cli.github.com/)）
+```bash
+make scan-github OWNER=<your-gh-login>            # アカウントの全リポ(fork除外)を一括
+# 単体: bash scanner/scan-github.sh <owner/repo> --token-user <gh> --author <who>
+```
+→ `output/reports/github/<owner>__<repo>.json`。言語比率は GitHub Linguist（バイト数）ベースで正確。
+
+**案件サマリに集約**（職務経歴書や経歴管理アプリへ供給する用）
+```bash
+make summary OWNER=<your-gh-login>                # → output/career-feed.json
+```
+→ 案件単位に言語比率・FW・期間・規模・関与コミットを集約（GitHub 走査優先・ローカルfallback）。
 
 ### NDA読解 → 判定 → 掲載用コード生成（Claude Code スキル）
 `skill/SKILL.md` を `~/.claude/skills/` にリンクすると、Claude Code から
@@ -77,7 +92,7 @@ make scan-one REPO=/path/to/repo       # 単一リポのメタデータを表示
 skill/           Claude Code スキル本体（SKILL.md）
 ledger/          projects.example.yaml（雛形）。実体 projects.yaml は各自作成・gitignore
 nda/             NDA/契約書の原本置き場（gitignore。リポには載らない）
-scanner/         依存ゼロのスキャナ scan.sh / run-all.sh
+scanner/         スキャナ: ローカル走査(scan.sh/run-all.sh) + GitHub走査(scan-github.sh/run-all-github.sh) + 集約(export-summary.sh)
 output/reports/  技術メタデータ JSON（gitignore）
 output/publishable/  載せてよい形に変換されたコード（gitignore）
 ```
