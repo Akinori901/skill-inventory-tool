@@ -2,6 +2,14 @@
 
 過去に関わった案件を **安全に棚卸し** するためのツール。
 
+<p>
+  <img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-skill-D97757">
+  <img alt="zero-dependency" src="https://img.shields.io/badge/依存-git_+_find_/_grep のみ-2ea44f">
+  <img alt="NDA-aware" src="https://img.shields.io/badge/判定-NDA_/_契約に基づく-D33C43">
+  <img alt="GitHub" src="https://img.shields.io/badge/集計-GitHub_Linguist対応-181717?logo=github&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-green">
+</p>
+
 1. **技術スキルを機械集計** — 各リポの言語比率・フレームワーク・規模・期間を JSON 化
 2. **NDA/契約を読解して掲載可否を判定** — 「自分のリポジトリに何をどう載せてよいか（帰属・複製可否・匿名化要否）」を、契約に基づいて判断
 3. **載せてよい形に変換した公開可能コードを生成** — 自社帰属はそのまま、留保された汎用部品は切り出して
