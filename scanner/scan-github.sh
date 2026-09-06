@@ -59,6 +59,25 @@ fi
 default_branch="$(gh api "repos/$FULL" --jq '.default_branch' 2>/dev/null || echo main)"
 remote="https://github.com/$FULL"
 
+# --- GitHub 固有メタ（star / fork / 公開URL / 公開可否）---
+# repos/$FULL のレスポンスは上で /tmp/_si_repo.json に保存済み。そこから拾う。
+stargazers="$(gh api "repos/$FULL" --jq '.stargazers_count' 2>/dev/null || echo 0)"
+forks="$(gh api "repos/$FULL" --jq '.forks_count' 2>/dev/null || echo 0)"
+html_url="$(gh api "repos/$FULL" --jq '.html_url' 2>/dev/null || echo "$remote")"
+# private=true/false → is_public は否定。空や取得失敗時は false 扱い（安全側）。
+is_private="$(gh api "repos/$FULL" --jq '.private' 2>/dev/null || echo true)"
+[ "$is_private" = "false" ] && repo_is_public=true || repo_is_public=false
+: "${stargazers:=0}"; : "${forks:=0}"
+# contributor 数（anon 含む）。Link ヘッダの last ページ番号＝総数。取れなければ 1。
+contributors="$(
+  gh api "repos/$FULL/contributors?per_page=1&anon=true" --include 2>/dev/null \
+    | grep -i '^link:' | grep -oE 'page=[0-9]+>; rel="last"' | grep -oE '[0-9]+' | head -1
+)"
+if [ -z "$contributors" ]; then
+  contributors="$(gh api "repos/$FULL/contributors?per_page=100&anon=true" --jq 'length' 2>/dev/null || echo 1)"
+fi
+: "${contributors:=1}"
+
 # --- 言語比率（Linguist: バイト数ベース）---
 # /languages は {"TypeScript": 12345, "Python": 678, ...}
 # gh api の --jq（内蔵 jq）でバイト数→比率つき配列に整形する。
@@ -166,7 +185,12 @@ cat <<EOF
   "repo": "$(json_escape "$FULL")",
   "source": "github",
   "remote": "$(json_escape "$remote")",
+  "html_url": "$(json_escape "$html_url")",
   "default_branch": "$(json_escape "$default_branch")",
+  "stargazers": ${stargazers:-0},
+  "forks": ${forks:-0},
+  "contributors": ${contributors:-1},
+  "is_public": ${repo_is_public:-false},
   "file_count": ${file_count:-0},
   "languages": [${lang_json}],
   "manifests": [${manifest_json}],

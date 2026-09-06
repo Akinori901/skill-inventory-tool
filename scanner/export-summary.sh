@@ -101,6 +101,14 @@ for proj in projects:
     firsts, lasts = [], []
     repo_count = 0
     sources = []  # どのソースを使ったか（github/local）
+    # GitHub 固有メタの案件単位集約。
+    #   stars/contributors は案件内の最大（代表リポの規模）。
+    #   repo_url は最も star が多い public リポの公開URL（記事フッターと同じ「代表リポ」）。
+    #   is_public は案件内に1つでも public があれば true。
+    max_stars = max_contributors = 0
+    any_public = False
+    repo_url = ""
+    best_repo_stars = -1
 
     for repo_path in proj["repos"]:
         repo_name = repo_path.rstrip("/").split("/")[-1]
@@ -131,6 +139,16 @@ for proj in projects:
         my_commits += g.get("author_commits", 0) or 0
         if g.get("first_commit"): firsts.append(g["first_commit"])
         if g.get("last_commit"): lasts.append(g["last_commit"])
+        # GitHub 固有メタ（local 走査には無いので get で欠損許容）。
+        stars = r.get("stargazers", 0) or 0
+        contribs = r.get("contributors", 0) or 0
+        if stars > max_stars: max_stars = stars
+        if contribs > max_contributors: max_contributors = contribs
+        if r.get("is_public"): any_public = True
+        # 代表リポ = public かつ star 最多のリポの公開URL。
+        if r.get("is_public") and stars > best_repo_stars:
+            best_repo_stars = stars
+            repo_url = r.get("html_url", "") or ""
 
     base = lang_bytes if lang_bytes else lang_files
     total = sum(base.values()) or 1
@@ -150,6 +168,11 @@ for proj in projects:
         "file_count": total_files,
         "total_commits": total_commits,
         "my_commits": my_commits,
+        # GitHub 固有メタ（案件単位に集約）。取り込み側で自社リポ実績として使う。
+        "stars": max_stars,
+        "contributors": max_contributors,
+        "repo_url": repo_url,
+        "is_public": any_public,
     })
 
 feed = {
