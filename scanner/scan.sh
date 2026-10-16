@@ -153,7 +153,9 @@ if $is_git; then
   fi
 fi
 
-remote="$(git -C "$REPO" remote get-url origin 2>/dev/null || echo "")"
+# https://user:token@host/... のように認証情報入りで clone したリポもあるので、
+# レポートに出す前に取り除く（レポートは gitignore 済みだが、共有や貼り付けで外に出うる）。
+remote="$(strip_url_credentials "$(git -C "$REPO" remote get-url origin 2>/dev/null || echo "")")"
 
 # --- 出力 ---
 cat <<EOF
