@@ -52,24 +52,18 @@ api() { gh api -H "Accept: application/vnd.github+json" "$@" 2>/dev/null; }
 # shellcheck source=scanner/lib.sh
 . "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
-# --- リポ存在チェック（無ければ error JSON を出して正常終了）---
-if ! api "repos/$FULL" >/tmp/_si_repo.json 2>/dev/null; then
+# --- リポ情報（存在チェックを兼ねる。1 回の API 呼び出しで必要な値を全部取る）---
+# 以前は /tmp の固定パスに保存したうえで同じ API を 4 回呼び直していた。
+# 固定パスは他のユーザーに symlink を置かれうるので、一時ファイル自体を使わない。
+if ! repo_meta="$(api "repos/$FULL" --jq '[.default_branch, .stargazers_count, .forks_count, .html_url, .private] | @tsv')"; then
   echo "{\"repo\":\"$(json_escape "$FULL")\",\"error\":\"not accessible (missing or no permission)\"}"
   exit 0
 fi
-
-default_branch="$(gh api "repos/$FULL" --jq '.default_branch' 2>/dev/null || echo main)"
+IFS=$'\t' read -r default_branch stargazers forks html_url is_private <<<"$repo_meta"
 remote="https://github.com/$FULL"
-
-# --- GitHub 固有メタ（star / fork / 公開URL / 公開可否）---
-# repos/$FULL のレスポンスは上で /tmp/_si_repo.json に保存済み。そこから拾う。
-stargazers="$(gh api "repos/$FULL" --jq '.stargazers_count' 2>/dev/null || echo 0)"
-forks="$(gh api "repos/$FULL" --jq '.forks_count' 2>/dev/null || echo 0)"
-html_url="$(gh api "repos/$FULL" --jq '.html_url' 2>/dev/null || echo "$remote")"
+: "${default_branch:=main}"; : "${stargazers:=0}"; : "${forks:=0}"; : "${html_url:=$remote}"
 # private=true/false → is_public は否定。空や取得失敗時は false 扱い（安全側）。
-is_private="$(gh api "repos/$FULL" --jq '.private' 2>/dev/null || echo true)"
-[ "$is_private" = "false" ] && repo_is_public=true || repo_is_public=false
-: "${stargazers:=0}"; : "${forks:=0}"
+[ "${is_private:-true}" = "false" ] && repo_is_public=true || repo_is_public=false
 # contributor 数（anon 含む）。Link ヘッダの last ページ番号＝総数。取れなければ 1。
 contributors="$(
   gh api "repos/$FULL/contributors?per_page=1&anon=true" --include 2>/dev/null \
@@ -172,11 +166,12 @@ fi
 my_commits=0
 if [ -n "$AUTHOR" ]; then
   my_commits="$(
-    gh api "repos/$FULL/commits?sha=$default_branch&author=$AUTHOR&per_page=1" --include 2>/dev/null \
+    # author は -f で渡し、gh に URL エンコードさせる（直書きだと + を含むメールで壊れる）
+    gh api -X GET "repos/$FULL/commits" -f sha="$default_branch" -f author="$AUTHOR" -F per_page=1 --include 2>/dev/null \
       | grep -i '^link:' | grep -oE 'page=[0-9]+>; rel="last"' | grep -oE '[0-9]+' | head -1
   )"
   if [ -z "$my_commits" ]; then
-    my_commits="$(gh api "repos/$FULL/commits?sha=$default_branch&author=$AUTHOR&per_page=1" --jq 'length' 2>/dev/null || echo 0)"
+    my_commits="$(gh api -X GET "repos/$FULL/commits" -f sha="$default_branch" -f author="$AUTHOR" -F per_page=1 --jq 'length' 2>/dev/null || echo 0)"
   fi
 fi
 : "${my_commits:=0}"
@@ -207,4 +202,3 @@ cat <<EOF
 }
 EOF
 
-rm -f /tmp/_si_repo.json 2>/dev/null || true
