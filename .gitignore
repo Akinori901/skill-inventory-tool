@@ -11,6 +11,9 @@
 /output/reports/**
 !/output/reports/.gitkeep
 
+# 案件サマリ（make summary の出力）。display_name に顧客名が入りうる。載せない。
+/output/*.json
+
 # 掲載用に生成した実コード。人間が確認したものだけ各自 -f で追加。
 /output/publishable/**
 !/output/publishable/.gitkeep
