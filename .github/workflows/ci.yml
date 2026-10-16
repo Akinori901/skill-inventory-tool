@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# CI は読むだけ。トークンに書き込み権限を持たせない。
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # action はコミット SHA で固定する（タグは付け替えられるため）
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: shellcheck
+        # ubuntu-latest には shellcheck が入っている
+        run: shellcheck -x scanner/*.sh tests/run.sh
+      - name: test
+        run: bash tests/run.sh

@@ -110,6 +110,15 @@ output/publishable/  載せてよい形に変換されたコード（gitignore�
 - `ledger/projects.yaml`・`nda/`・`output/` の実データは `.gitignore` で追跡対象外。
 - 台帳 `decision` が `as_is`/`anonymize` 以外の案件は、scan がメタデータJSONを出すだけでコードに触れない（fail-safe）。
 - 判定は必ず人間が承認。Claude の読解は下書きであり、最終責任は人間。
+- レポートに出す remote URL からは認証情報（`https://user:token@...`）を取り除く。
+- 台帳の `key` は出力ファイル名になるため、英数字で始まり英数字 `. _ -` だけに限る（`../` などで `output/reports` の外へ書かせない）。
+
+## 開発
+
+```bash
+bash tests/run.sh               # テスト（依存ゼロ。GitHub API を叩く scan-github.sh は対象外）
+shellcheck -x scanner/*.sh      # CI でも同じものを実行
+```
 
 ## ライセンス
 
