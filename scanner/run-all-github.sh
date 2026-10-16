@@ -53,7 +53,7 @@ fi
 # --- リポ一覧を取得（visibility / fork でフィルタ）---
 echo ">> listing repos for $OWNER ..." >&2
 repos="$(
-  gh repo list "$OWNER" --limit 200 --json name,visibility,isFork \
+  gh repo list "$OWNER" --limit 1000 --json name,visibility,isFork \
     --jq '.[] | [.name, (.visibility|ascii_downcase), (.isFork|tostring)] | @tsv' 2>/dev/null || true
 )"
 

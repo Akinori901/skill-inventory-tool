@@ -140,6 +140,7 @@ for pyf in "$REPO/requirements.txt" "$REPO/pyproject.toml"; do
     grep -qiE "$fw" "$pyf" && frameworks="$frameworks $fw"
   done
 done
+# shellcheck disable=SC2086  # 空白区切りの一覧を 1 語ずつに分けたいので、あえてクォートしない
 fw_json="$(printf '%s\n' $frameworks | awk 'NF{printf "%s\"%s\"",(c++?",":""),$0}')"
 
 # --- git 集計 ---

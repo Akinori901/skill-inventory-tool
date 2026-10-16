@@ -78,6 +78,7 @@ fi
 # /languages は {"TypeScript": 12345, "Python": 678, ...}
 # gh api の --jq（内蔵 jq）でバイト数→比率つき配列に整形する。
 lang_json="$(
+  # shellcheck disable=SC2016  # $total は jq の変数。シェルに展開させない
   gh api "repos/$FULL/languages" --jq '
     (to_entries | map(.value) | add) as $total
     | to_entries
@@ -142,6 +143,7 @@ for pyf in requirements.txt pyproject.toml; do
     done
   fi
 done
+# shellcheck disable=SC2086  # 空白区切りの一覧を 1 語ずつに分けたいので、あえてクォートしない
 fw_json="$(printf '%s\n' $frameworks | awk 'NF{printf "%s\"%s\"",(c++?",":""),$0}')"
 
 # --- git 集計（commits API）---
