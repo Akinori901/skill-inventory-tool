@@ -48,7 +48,9 @@ fi
 
 api() { gh api -H "Accept: application/vnd.github+json" "$@" 2>/dev/null; }
 
-json_escape() { sed 's/\\/\\\\/g; s/"/\\"/g' <<<"$1"; }
+# json_escape などの共通処理
+# shellcheck source=scanner/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 # --- リポ存在チェック（無ければ error JSON を出して正常終了）---
 if ! api "repos/$FULL" >/tmp/_si_repo.json 2>/dev/null; then

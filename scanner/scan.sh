@@ -33,7 +33,9 @@ done
 
 [ -d "$REPO" ] || { echo "{\"error\":\"not a directory: $REPO\"}"; exit 0; }
 
-json_escape() { sed 's/\\/\\\\/g; s/"/\\"/g' <<<"$1"; }
+# json_escape などの共通処理
+# shellcheck source=scanner/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 # --- git がある場合の追跡ファイル一覧、無ければ find フォールバック ---
 is_git=false
