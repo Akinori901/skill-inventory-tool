@@ -99,7 +99,7 @@ file_count="$(printf '%s\n' "$tree_paths" | grep -c . || true)"
 : "${file_count:=0}"
 
 # --- マニフェスト検出（ファイル名ベース）---
-detect() { printf '%s\n' "$tree_paths" | grep -qiE "(^|/)$1$" && echo "$2" || true; }
+detect() { if printf '%s\n' "$tree_paths" | grep -qiE "(^|/)$1$"; then echo "$2"; fi; }
 manifests="$(
   { detect 'package\.json' package.json
     detect 'go\.mod' go.mod

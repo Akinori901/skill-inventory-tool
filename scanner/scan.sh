@@ -107,7 +107,7 @@ lang_json="$(
 )"
 
 # --- マニフェスト検出 ---
-detect() { printf '%s\n' "$FILES" | grep -qiE "(^|/)$1$" && echo "$2" || true; }
+detect() { if printf '%s\n' "$FILES" | grep -qiE "(^|/)$1$"; then echo "$2"; fi; }
 manifests="$(
   { detect 'package\.json' package.json
     detect 'go\.mod' go.mod
