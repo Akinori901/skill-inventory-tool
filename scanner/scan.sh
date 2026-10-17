@@ -33,7 +33,9 @@ done
 
 [ -d "$REPO" ] || { echo "{\"error\":\"not a directory: $REPO\"}"; exit 0; }
 
-json_escape() { sed 's/\\/\\\\/g; s/"/\\"/g' <<<"$1"; }
+# json_escape などの共通処理
+# shellcheck source=scanner/lib.sh
+. "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 # --- git がある場合の追跡ファイル一覧、無ければ find フォールバック ---
 is_git=false
@@ -105,7 +107,7 @@ lang_json="$(
 )"
 
 # --- マニフェスト検出 ---
-detect() { printf '%s\n' "$FILES" | grep -qiE "(^|/)$1$" && echo "$2" || true; }
+detect() { if printf '%s\n' "$FILES" | grep -qiE "(^|/)$1$"; then echo "$2"; fi; }
 manifests="$(
   { detect 'package\.json' package.json
     detect 'go\.mod' go.mod
@@ -138,6 +140,7 @@ for pyf in "$REPO/requirements.txt" "$REPO/pyproject.toml"; do
     grep -qiE "$fw" "$pyf" && frameworks="$frameworks $fw"
   done
 done
+# shellcheck disable=SC2086  # 空白区切りの一覧を 1 語ずつに分けたいので、あえてクォートしない
 fw_json="$(printf '%s\n' $frameworks | awk 'NF{printf "%s\"%s\"",(c++?",":""),$0}')"
 
 # --- git 集計 ---
@@ -151,7 +154,9 @@ if $is_git; then
   fi
 fi
 
-remote="$(git -C "$REPO" remote get-url origin 2>/dev/null || echo "")"
+# https://user:token@host/... のように認証情報入りで clone したリポもあるので、
+# レポートに出す前に取り除く（レポートは gitignore 済みだが、共有や貼り付けで外に出うる）。
+remote="$(strip_url_credentials "$(git -C "$REPO" remote get-url origin 2>/dev/null || echo "")")"
 
 # --- 出力 ---
 cat <<EOF

@@ -20,6 +20,8 @@ LEDGER="$ROOT/ledger/projects.yaml"
 OUT="$ROOT/output/reports"
 AUTHOR="${SKILL_INV_AUTHOR:-}"   # 自分の関与コミット数を出したい場合に export
 mkdir -p "$OUT"
+# shellcheck source=scanner/lib.sh
+. "$HERE/lib.sh"
 
 [ -f "$LEDGER" ] || { echo "ledger not found: $LEDGER" >&2; exit 1; }
 
@@ -41,9 +43,15 @@ awk '
   }
   END { if (key!="") flush() }
   function trim(line, label,   v){ sub(".*"label,"",line); sub(/[ \t]*#.*/,"",line); gsub(/^[ \t]+|[ \t]+$/,"",line); gsub(/^"|"$/,"",line); return line }
-  function flush(){ print key "\t" decision "\t" dn "\t" repos; key=""; dn="" }
-' "$LEDGER" | while IFS=$'\t' read -r key decision dn repos; do
+  # 区切りは US（\037）。タブだと display_name にタブがあるだけで列がずれる。
+  function flush(){ print key "\037" decision "\037" dn "\037" repos; key=""; dn="" }
+' "$LEDGER" | while IFS=$'\037' read -r key decision dn repos; do
   [ -n "$key" ] || continue
+  # key は出力ファイル名になる。"../" などで output/reports の外に書かせない。
+  if ! is_valid_key "$key"; then
+    echo "!! skip: 不正な key（英数字で始まり、英数字 . _ - のみ）: $key" >&2
+    continue
+  fi
   echo ">> $key  (decision=$decision)  $dn" >&2
 
   # コード生成が許可されているか
@@ -58,16 +66,16 @@ awk '
     if [ -d "$repo" ]; then
       one="$(bash "$HERE/scan.sh" "$repo" ${AUTHOR:+--author "$AUTHOR"})"
     else
-      one="{\"repo_path\":\"$repo\",\"error\":\"missing on this machine\"}"
+      one="{\"repo_path\":\"$(json_escape "$repo")\",\"error\":\"missing on this machine\"}"
     fi
     repo_json="$repo_json${repo_json:+,}$one"
   done; unset IFS
 
   cat > "$OUT/$key.json" <<EOF
 {
-  "key": "$key",
-  "display_name": "$dn",
-  "decision": "$decision",
+  "key": "$(json_escape "$key")",
+  "display_name": "$(json_escape "$dn")",
+  "decision": "$(json_escape "$decision")",
   "code_generation_allowed": $code_allowed,
   "scanned_repos": [${repo_json}]
 }

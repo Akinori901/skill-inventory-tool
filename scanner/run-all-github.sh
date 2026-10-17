@@ -42,6 +42,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 OUT="$ROOT/output/reports/github"
 mkdir -p "$OUT"
+# shellcheck source=scanner/lib.sh
+. "$HERE/lib.sh"
 
 if [ -n "$TOKEN_USER" ]; then
   GH_TOKEN="$(gh auth token -u "$TOKEN_USER" 2>/dev/null || true)"
@@ -51,7 +53,7 @@ fi
 # --- リポ一覧を取得（visibility / fork でフィルタ）---
 echo ">> listing repos for $OWNER ..." >&2
 repos="$(
-  gh repo list "$OWNER" --limit 200 --json name,visibility,isFork \
+  gh repo list "$OWNER" --limit 1000 --json name,visibility,isFork \
     --jq '.[] | [.name, (.visibility|ascii_downcase), (.isFork|tostring)] | @tsv' 2>/dev/null || true
 )"
 
@@ -70,18 +72,18 @@ while IFS=$'\t' read -r name vis is_fork; do
   bash "$HERE/scan-github.sh" "$full" \
     ${AUTHOR:+--author "$AUTHOR"} \
     ${TOKEN_USER:+--token-user "$TOKEN_USER"} \
-    > "$out_file" 2>/dev/null || echo "{\"repo\":\"$full\",\"error\":\"scan failed\"}" > "$out_file"
+    > "$out_file" 2>/dev/null || echo "{\"repo\":\"$(json_escape "$full")\",\"error\":\"scan failed\"}" > "$out_file"
 
   count=$((count + 1))
-  index_entries="$index_entries${index_entries:+,}{\"repo\":\"$full\",\"visibility\":\"$vis\",\"report\":\"github/${OWNER}__${name}.json\"}"
+  index_entries="$index_entries${index_entries:+,}{\"repo\":\"$(json_escape "$full")\",\"visibility\":\"$(json_escape "$vis")\",\"report\":\"$(json_escape "github/${OWNER}__${name}.json")\"}"
 done <<< "$repos"
 
 # --- インデックス（一覧）を書き出す ---
 cat > "$OUT/_index.json" <<EOF
 {
-  "owner": "$OWNER",
+  "owner": "$(json_escape "$OWNER")",
   "scanned_count": $count,
-  "author_filter": "$AUTHOR",
+  "author_filter": "$(json_escape "$AUTHOR")",
   "note": "L1 metadata only. Code publication requires ledger decision + NDA review.",
   "repos": [${index_entries}]
 }
